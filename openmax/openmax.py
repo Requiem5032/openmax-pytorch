@@ -13,6 +13,57 @@ LABELS = range(NCLASSES)
 WEIBULL_TAIL_SIZE = NCLASSES
 
 
+class OpenMax:
+    def __init__(self, net, fold):
+        self.net = net
+        self.dev = torch.device('cuda:0')
+        self.fold = fold
+
+        self.net.to(self.dev)
+        self.net.eval()
+
+    def compute(self, dl):
+        openmax = []
+        prob_u = []
+        y_true = []
+
+        with torch.no_grad():
+            for data in dl:
+                x = data[0].to(self.dev)
+                y = data[1].cpu().numpy()
+                out = self.net(x).cpu().numpy()
+
+                for logits, label in zip(out, y):
+                    temp_openmax, temp_prob_u = compute_openmax(
+                        logits, self.fold)
+                    openmax.append(temp_openmax)
+                    prob_u.append(temp_prob_u)
+                    y_true.append(label)
+
+        openmax = np.asarray(openmax)
+        prob_u = np.asarray(prob_u)
+        y_true = np.asarray(y_true)
+
+        y_true_bin = get_bin_labels(y_true)
+        roc = compute_roc(y_true_bin, prob_u)
+        roc_thresh = roc['thresholds']
+
+        best_idx = np.argmax(roc['tpr'] - roc['fpr'])
+        best_thresh = roc_thresh[best_idx]
+        return openmax, best_thresh
+
+    def predict(self, dl):
+        y_pred = []
+        openmax, thresh = self.compute(dl)
+
+        for scores in openmax:
+            temp = get_openmax_predict_int(scores, thresh)
+            y_pred.append(temp)
+
+        y_pred = np.asarray(y_pred)
+        return y_pred
+
+
 def create_model(net, dataloader, fold):
     device = torch.device('cuda:0')
     logits_correct = []
@@ -60,7 +111,8 @@ def build_weibull(mean, distance, tail, fold):
 
     for label in LABELS:
         weibull_model[label] = {}
-        weibull = weibull_tail_fitting(mean[label], distance[label], tailsize=tail)
+        weibull = weibull_tail_fitting(
+            mean[label], distance[label], tailsize=tail)
         weibull_model[label] = weibull
 
     with open(model_path, 'wb') as file:
