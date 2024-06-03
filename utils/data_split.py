@@ -30,8 +30,12 @@ def get_data_map():
 
 def get_species_map(df):
     class_map = {}
-    for i in range(len(df)):
-        class_map[df.loc[i, 'Species']] = df.loc[i, 'Species_Name']
+    species = df['Species'].unique()
+    species_name = df['Species_Name'].unique()
+    for k, v in zip(species, species_name):
+        class_map[k] = v
+
+    class_map = dict(sorted(class_map.items(), key=lambda x: x[0]))
     return class_map
 
 

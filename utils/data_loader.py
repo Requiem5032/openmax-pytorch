@@ -5,6 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from skimage import transform
 from utils.data_loader_utils import *
+from utils.data_split import get_species_map
 from utils.preprocess import alb_transform_train, alb_transform_test
 
 
@@ -111,6 +112,8 @@ def get_test_loader(config, test_df=None, DatasetClass=None):
         data_df = pd.read_csv(config.DATA_CSV_PATH)
         test_df = data_df[data_df['Split'].apply(
             lambda x: 'test' in x)].reset_index(drop=True)
+        
+    class_map = get_species_map(test_df)
     
     test_tf = alb_transform_test(config.imsize)
 
@@ -130,4 +133,4 @@ def get_test_loader(config, test_df=None, DatasetClass=None):
                              pin_memory=True,
                              drop_last=False)
 
-    return test_loader
+    return test_loader, class_map

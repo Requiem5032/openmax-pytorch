@@ -4,7 +4,7 @@ import os
 import cv2
 from easydict import EasyDict
 config = EasyDict()
-FOLD = 5
+FOLD = 1
 
 config.fold = FOLD
 config.exp_name = "next_experiment".format(FOLD)

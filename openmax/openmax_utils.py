@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 from sklearn.metrics import roc_curve, roc_auc_score, precision_recall_curve, average_precision_score
 
+CLASS_NUM = 16
+
 
 def compute_mean_vector(feature):
     return np.mean(feature, axis=0)
@@ -35,27 +37,27 @@ def compute_distance_dict(mean_feature, feature):
 
 def get_openmax_predict_int(openmax, threshold):
     max_idx = np.argmax(openmax)
-    if (max_idx == 16) or (openmax[16] >= threshold):
-        return 16
+    if (max_idx == CLASS_NUM) or (openmax[CLASS_NUM] >= threshold):
+        return CLASS_NUM
     else:
         return max_idx
 
 
 def get_openmax_predict_bin(openmax, threshold):
     max_idx = np.argmax(openmax)
-    if (max_idx == 16) or (openmax[16] >= threshold):
+    if (max_idx == CLASS_NUM) or (openmax[CLASS_NUM] >= threshold):
         return 1
     else:
         return 0
 
 
 def get_int_labels(labels):
-    labels = np.where(labels > 15, 16, labels)
+    labels = np.where(labels > CLASS_NUM - 1, CLASS_NUM, labels)
     return labels
 
 
 def get_bin_labels(labels):
-    labels = np.where(labels > 15, 1, 0)
+    labels = np.where(labels > CLASS_NUM - 1, 1, 0)
     return labels
 
 
@@ -79,6 +81,7 @@ def compute_roc(y_true, y_score):
 
 
 def compute_pr(y_true, y_score):
+    np.seterr(divide='ignore', invalid='ignore')
     precision, recall, thresholds = precision_recall_curve(y_true, y_score)
     aupr = average_precision_score(y_true, y_score)
     f1 = np.nan_to_num((2*precision*recall) / (precision+recall))
