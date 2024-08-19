@@ -51,7 +51,7 @@ class MosDataset(Dataset):
         return mixup_loader(idx, self.images_df, self.dataset, self.colors)
 
 
-def get_data_loaders(config, eval_mode=False, get_dataset=False, train_df=None,
+def get_data_loaders(config, thresh_mode=False, eval_mode=False, get_dataset=False, train_df=None,
                      valid_df=None, DatasetClass=MosDataset):
     if train_df is None:
         print("Reading data split from {}".format(config.DATA_CSV_PATH))
@@ -60,11 +60,12 @@ def get_data_loaders(config, eval_mode=False, get_dataset=False, train_df=None,
         train_df = data_df[data_df['Split'] == 'train'].reset_index(drop=True)
         valid_df = data_df[data_df['Split'] == 'val'].reset_index(drop=True)
 
-        if config.known_only:
-            train_df = train_df[train_df['Species'].apply(
-                lambda x: x not in config.unknown_classes)].reset_index(drop=True)
-            valid_df = valid_df[valid_df['Species'].apply(
-                lambda x: x not in config.unknown_classes)].reset_index(drop=True)
+        if thresh_mode == False:
+            if config.known_only:
+                train_df = train_df[train_df['Species'].apply(
+                    lambda x: x not in config.unknown_classes)].reset_index(drop=True)
+                valid_df = valid_df[valid_df['Species'].apply(
+                    lambda x: x not in config.unknown_classes)].reset_index(drop=True)
 
     if config.debug and config.reduce_dataset:
         train_df = train_df.loc[:200]

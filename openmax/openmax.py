@@ -22,39 +22,56 @@ class OpenMax:
         self.net.to(self.dev)
         self.net.eval()
 
-    def compute(self, dl):
-        openmax = []
-        prob_u = []
-        y_true = []
+    def compute(self, dl, thresh=None):
+        if thresh is None:
+            openmax = []
+            prob_u = []
+            y_true = []
 
-        with torch.no_grad():
-            for data in dl:
-                x = data[0].to(self.dev)
-                y = data[1].cpu().numpy()
-                out = self.net(x).cpu().numpy()
+            with torch.no_grad():
+                for data in dl:
+                    x = data[0].to(self.dev)
+                    y = data[1].cpu().numpy()
+                    out = self.net(x).cpu().numpy()
 
-                for logits, label in zip(out, y):
-                    temp_openmax, temp_prob_u = compute_openmax(
-                        logits, self.fold)
-                    openmax.append(temp_openmax)
-                    prob_u.append(temp_prob_u)
-                    y_true.append(label)
+                    for logits, label in zip(out, y):
+                        temp_openmax, temp_prob_u = compute_openmax(
+                            logits, self.fold)
+                        openmax.append(temp_openmax)
+                        prob_u.append(temp_prob_u)
+                        y_true.append(label)
 
-        openmax = np.asarray(openmax)
-        prob_u = np.asarray(prob_u)
-        y_true = np.asarray(y_true)
+            openmax = np.asarray(openmax)
+            prob_u = np.asarray(prob_u)
+            y_true = np.asarray(y_true)
 
-        y_true_bin = get_bin_labels(y_true)
-        roc = compute_roc(y_true_bin, prob_u)
-        roc_thresh = roc['thresholds']
+            y_true_bin = get_bin_labels(y_true)
+            roc = compute_roc(y_true_bin, prob_u)
+            roc_thresh = roc['thresholds']
 
-        best_idx = np.argmax(roc['tpr'] - roc['fpr'])
-        best_thresh = roc_thresh[best_idx]
-        return openmax, best_thresh
+            best_idx = np.argmax(roc['tpr'] - roc['fpr'])
+            best_thresh = roc_thresh[best_idx]
+            return openmax, best_thresh
+        
+        else:
+            openmax = []
 
-    def predict(self, dl):
+            with torch.no_grad():
+                for data in dl:
+                    x = data[0].to(self.dev)
+                    out = self.net(x).cpu().numpy()
+
+                    for logits in out:
+                        temp_openmax, temp_prob_u = compute_openmax(
+                            logits, self.fold)
+                        openmax.append(temp_openmax)
+
+            openmax = np.asarray(openmax)
+            return openmax, thresh
+
+    def predict(self, dl, thresh=None):
         y_pred = []
-        openmax, thresh = self.compute(dl)
+        openmax, thresh = self.compute(dl, thresh)
 
         for scores in openmax:
             temp = get_openmax_predict_int(scores, thresh)
